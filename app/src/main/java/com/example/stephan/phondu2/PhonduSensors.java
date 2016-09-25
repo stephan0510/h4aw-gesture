@@ -59,7 +59,7 @@ public class PhonduSensors extends AppCompatActivity implements SensorEventListe
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        Log.d(TAG, "new1");
         setContentView(R.layout.activity_phondu_touch);
 
         mContentView = findViewById(R.id.fullscreen_content);
@@ -129,8 +129,9 @@ public class PhonduSensors extends AppCompatActivity implements SensorEventListe
     protected void onResume() {
         super.onResume();
         Log.d(TAG, "onResume");
-        mSensorManager.registerListener(this, mAccSensor, SensorManager.SENSOR_DELAY_UI);
-        mSensorManager.registerListener(this, mGravitySensor, SensorManager.SENSOR_DELAY_UI);
+        mSensorManager.registerListener(this, mAccSensor, SensorManager.SENSOR_DELAY_FASTEST);
+        mSensorManager.registerListener(this, mGravitySensor, SensorManager.SENSOR_DELAY_FASTEST);
+        mSensorManager.registerListener(this, mLinearAccSensor, SensorManager.SENSOR_DELAY_FASTEST);
         registerReceiver(onBattery, new IntentFilter(Intent.ACTION_POWER_CONNECTED));
         registerReceiver(onBattery, new IntentFilter(Intent.ACTION_POWER_DISCONNECTED));
         registerReceiver(onBattery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
@@ -227,9 +228,9 @@ public class PhonduSensors extends AppCompatActivity implements SensorEventListe
             if (player != null) {
                 player.reset();
             }
-            player = MediaPlayer.create(this, R.raw.beep);
-            player.setLooping(true);
-            player.start();
+//            player = MediaPlayer.create(this, R.raw.beep);
+//            player.setLooping(true);
+//            player.start();
             mIsPlaying = true;
 //        } else {
 //            player.stop();
@@ -248,11 +249,18 @@ public class PhonduSensors extends AppCompatActivity implements SensorEventListe
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+        if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
             float x = event.values[0];
             float y = event.values[1];
             float z = event.values[2];
             float absAccSum = Math.abs(x) + Math.abs(y) + Math.abs(z);
+            Log.d(TAG, event.sensor.getName() + x + ", " + y + ", " + z);
+        } else if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            float x = event.values[0];
+            float y = event.values[1];
+            float z = event.values[2];
+            float absAccSum = Math.abs(x) + Math.abs(y) + Math.abs(z);
+            Log.d(TAG, event.sensor.getName() + x + ", " + y + ", " + z);
             if (mLow + 35 < mPeak) {
                 Log.d(TAG, "Shock: " + x + " | " + y + " | " + z + " || " + absAccSum);
                 onAlarmStart();
@@ -273,6 +281,8 @@ public class PhonduSensors extends AppCompatActivity implements SensorEventListe
             float y = event.values[1];
             float z = event.values[2];
             Log.d(TAG, "Gravity: " + x + " | " + y + " | " + z + " | ");
+        } else {
+            Log.d(TAG, "SensorType: " + event.sensor.getName());
         }
     }
 
