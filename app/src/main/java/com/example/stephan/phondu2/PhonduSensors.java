@@ -222,20 +222,15 @@ public class PhonduSensors extends AppCompatActivity implements SensorEventListe
 
     private void onAlarmStart() {
         Log.d(TAG, "onAlarmStart");
-        if (!mIsPlaying) {
-            //Uri tone = Settings.System.DEFAULT_ALARM_ALERT_URI;
-            //Uri tone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-            if (player != null) {
-                player.reset();
-            }
-//            player = MediaPlayer.create(this, R.raw.beep);
-//            player.setLooping(true);
-//            player.start();
-            mIsPlaying = true;
-//        } else {
-//            player.stop();
-//            mIsPlaying = false;
+        //Uri tone = Settings.System.DEFAULT_ALARM_ALERT_URI;
+        //Uri tone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        if (player != null) {
+            player.stop();
+            player.reset();
         }
+        player = MediaPlayer.create(this, R.raw.beep);
+        //player.setLooping(true);
+        player.start();
     }
 
     private void onAlarmStop() {
@@ -246,6 +241,13 @@ public class PhonduSensors extends AppCompatActivity implements SensorEventListe
             player.reset();
         }
     }
+
+    float prevX = 0;
+    float prevY = 0;
+    float prevZ = 0;
+    int mKnockCount = 0;
+    int mSilentCount = 0;
+    int mDebounceCount = 0;
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -259,22 +261,33 @@ public class PhonduSensors extends AppCompatActivity implements SensorEventListe
             float x = event.values[0];
             float y = event.values[1];
             float z = event.values[2];
-            float absAccSum = Math.abs(x) + Math.abs(y) + Math.abs(z);
-            Log.d(TAG, event.sensor.getName() + x + ", " + y + ", " + z);
-            if (mLow + 35 < mPeak) {
-                Log.d(TAG, "Shock: " + x + " | " + y + " | " + z + " || " + absAccSum);
-                onAlarmStart();
-                mPeak = absAccSum;
-                mLow = absAccSum;
-            }
-            if (absAccSum > mPeak) {
-                mPeak = absAccSum;
-                mLow = absAccSum;
+            float dx = prevX - x;
+            float dy = prevY - y;
+            float dz = prevZ - z;
+            prevX = x;
+            prevY = y;
+            prevZ = z;
+            Log.d(TAG, "Data: " + x + ", " + y + ", " + z);
+            double derivation = dx * dx + dy * dy + dz * dz;
+            Log.d(TAG, "Derivation: " + derivation);
+            mDebounceCount++;
+            if (mDebounceCount > 50 && derivation > 4) {
+                mKnockCount++;
+                mDebounceCount = 0;
+                mSilentCount = 0;
             } else {
-                if (mPeak > 40) {
-                    Log.d(TAG, "Peak: " + x + " | " + y + " | " + z + " || " + absAccSum);
-                }
-                mLow = absAccSum;
+                mSilentCount++;
+            }
+            Log.d(TAG, "mKnockCount: " + mKnockCount);
+            Log.d(TAG, "mSilentCount: " + mSilentCount);
+            if (mSilentCount > 300) {
+                mKnockCount = 0;
+            }
+            if (mKnockCount == 3) {
+                Log.d(TAG, "mKnockCount: alarm");
+                onAlarmStart();
+                mKnockCount = 0;
+                mSilentCount = 0;
             }
         } else if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
             float x = event.values[0];
