@@ -248,6 +248,8 @@ public class PhonduSensors extends AppCompatActivity implements SensorEventListe
     int mKnockCount = 0;
     int mSilentCount = 0;
     int mDebounceCount = 0;
+    boolean mPeekDetected = false;
+float mPeakAmp;
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -268,26 +270,44 @@ public class PhonduSensors extends AppCompatActivity implements SensorEventListe
             prevY = y;
             prevZ = z;
             Log.d(TAG, "Data: " + x + ", " + y + ", " + z);
-            double derivation = dx * dx + dy * dy + dz * dz;
+            float derivation = dx * dx + dy * dy + dz * dz;
             Log.d(TAG, "Derivation: " + derivation);
-            mDebounceCount++;
-            if (mDebounceCount > 50 && derivation > 4) {
-                mKnockCount++;
-                mDebounceCount = 0;
-                mSilentCount = 0;
+            if (mPeekDetected) {
+                mDebounceCount++;
+                if (mDebounceCount < 15) {
+                    if (derivation < 0.05) {
+                        mPeekDetected = false;
+                        mKnockCount  = 0;
+                        Log.d(TAG, "knock canceled");
+                    }
+                } else {
+                    if (mPeekDetected) {
+                        Log.d(TAG, "knock confirmed");
+                        mKnockCount++;
+                        mSilentCount = 0;
+                        mPeekDetected = false;
+                    }
+                }
             } else {
                 mSilentCount++;
+                if (mSilentCount > 50) {
+                    if (derivation > 4) {
+                        Log.d(TAG, "peak detected: " + derivation);
+                        mPeekDetected = true;
+                        mDebounceCount = 0;
+                        mPeakAmp = derivation;
+                    }
+                }
+                if (mSilentCount > 200) {
+                    mKnockCount = 0;
+                }
             }
             Log.d(TAG, "mKnockCount: " + mKnockCount);
             Log.d(TAG, "mSilentCount: " + mSilentCount);
-            if (mSilentCount > 300) {
-                mKnockCount = 0;
-            }
             if (mKnockCount == 3) {
                 Log.d(TAG, "mKnockCount: alarm");
                 onAlarmStart();
                 mKnockCount = 0;
-                mSilentCount = 0;
             }
         } else if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
             float x = event.values[0];
