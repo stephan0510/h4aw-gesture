@@ -229,7 +229,7 @@ public class PhonduSensors extends AppCompatActivity implements SensorEventListe
             player.reset();
         }
         player = MediaPlayer.create(this, R.raw.beep);
-        //player.setLooping(true);
+        player.setLooping(true);
         player.start();
     }
 
@@ -290,7 +290,7 @@ float mPeakAmp;
                 }
             } else {
                 mSilentCount++;
-                if (mSilentCount > 50) {
+                if (mSilentCount > 40) {
                     if (derivation > 4) {
                         Log.d(TAG, "peak detected: " + derivation);
                         mPeekDetected = true;
